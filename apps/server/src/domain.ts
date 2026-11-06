@@ -224,12 +224,35 @@ export function subtreeIds(tasks: Array<Pick<TaskRecord, "id" | "parentId">>, ro
   return ids
 }
 
+/** 已完成的任务不再接受任何修改，包括进度、日期、备注和拆子任务。 */
+export function assertTaskMutable(status: TaskStatus): void {
+  if (status === "done") throw new AppError("已完成的任务不能再修改")
+}
+
+/** 已完成的任务不能删除。父任务若带着已完成的子任务，也不能整棵删掉。 */
+export function assertDeletable(tasks: TaskRecord[], rootId: string): void {
+  const ids = new Set(subtreeIds(tasks, rootId))
+  const root = tasks.find((task) => task.id === rootId)
+  if (root?.status === "done") throw new AppError("已完成的任务不能删除")
+  if (tasks.some((task) => ids.has(task.id) && task.status === "done")) {
+    throw new AppError("子任务里有已完成的任务，不能删除")
+  }
+}
+
+/** 待办 → 进行中 → 阻塞 → 完成，只进不退。已完成不能再改状态。 */
+export function assertStatusForward(current: TaskStatus, next: TaskStatus): void {
+  if (TASK_STATUSES.indexOf(next) >= TASK_STATUSES.indexOf(current)) return
+  if (current === "done") throw new AppError("已完成的任务不能再改状态")
+  throw new AppError("任务状态不能倒退")
+}
+
 /** 状态改成 done 且调用方没带进度时，进度写成 100。 */
 export function applyStatusPatch(
   task: Pick<TaskRecord, "status" | "progress" | "note">,
   patch: { status?: TaskStatus; progress?: number; note?: string },
 ): { status: TaskStatus; progress: number; note: string } {
   const status = patch.status ?? task.status
+  if (patch.status !== undefined) assertStatusForward(task.status, patch.status)
   let progress = patch.progress ?? task.progress
   if (patch.status === "done" && patch.progress === undefined) progress = 100
   const note = patch.note === undefined ? task.note : patch.note

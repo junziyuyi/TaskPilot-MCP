@@ -21,8 +21,12 @@
         <div class="grid grid-cols-2 gap-3">
           <label class="field">
             状态
-            <select v-model="form.status">
-              <option v-for="status in STATUS_ORDER" :key="status" :value="status">{{ STATUS_LABEL[status] }}</option>
+            <select
+              v-model="form.status"
+              :disabled="statusLocked"
+              :title="statusLocked ? '已完成，不能改状态' : undefined"
+            >
+              <option v-for="status in statusChoices" :key="status" :value="status">{{ STATUS_LABEL[status] }}</option>
             </select>
           </label>
           <label class="field">
@@ -66,12 +70,15 @@
         <button class="btn btn-copper" type="submit" :disabled="busy">保存</button>
         <button class="btn" type="button" @click="emit('close')">取消</button>
         <button
-          v-if="mode === 'edit' && !confirmingDelete"
+          v-if="mode === 'edit' && !confirmingDelete && !blockedDelete"
           class="btn ml-auto"
           type="button"
           @click="confirmingDelete = true"
           >删除任务</button
         >
+        <span v-if="mode === 'edit' && !confirmingDelete && blockedDelete" class="ml-auto text-sm text-muted">
+          {{ blockedDelete }}
+        </span>
         <template v-if="confirmingDelete">
           <span class="ml-auto text-sm text-muted">同时删除它的子任务</span>
           <button class="btn btn-danger" type="button" :disabled="busy" @click="emit('remove')">确认删除</button>
@@ -83,7 +90,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { STATUS_LABEL, STATUS_ORDER } from '@/labels'
+import { forwardStatuses, STATUS_LABEL, STATUS_ORDER } from '@/labels'
 import { excludedParentIds } from '@/tree'
 import type { Task, TaskDraft, TaskOption } from '@/types'
 
@@ -115,6 +122,30 @@ const form = reactive<TaskDraft>({
   endDate: props.task?.endDate ?? null,
   note: props.task?.note ?? '',
   dependsOnTaskIds: [...(props.task?.dependsOnTaskIds ?? [])],
+})
+
+const statusLocked = computed(() => props.mode === 'edit' && props.task?.status === 'done')
+const statusChoices = computed(() => (props.task ? forwardStatuses(props.task.status) : STATUS_ORDER))
+const blockedDelete = computed(() => {
+  if (props.mode !== 'edit' || !props.task) return ''
+  if (props.task.status === 'done') return '已完成的任务不能删除'
+  const children = new Map<string, TaskOption[]>()
+  for (const option of props.options) {
+    if (!option.parentId) continue
+    const list = children.get(option.parentId) ?? []
+    list.push(option)
+    children.set(option.parentId, list)
+  }
+  const stack = [...(children.get(props.task.id) ?? [])]
+  const seen = new Set<string>()
+  while (stack.length > 0) {
+    const current = stack.pop()!
+    if (seen.has(current.id)) continue
+    seen.add(current.id)
+    if (current.status === 'done') return '子任务里有已完成的任务，不能删除'
+    stack.push(...(children.get(current.id) ?? []))
+  }
+  return ''
 })
 
 const parentChoices = computed(() => {

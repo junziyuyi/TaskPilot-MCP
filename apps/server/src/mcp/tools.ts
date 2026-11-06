@@ -88,7 +88,7 @@ export const TOOLS: ToolSchema[] = [
   },
   {
     name: "expand_task",
-    description: "把一条任务拆成最多 20 条子任务。depends_on_index 从 0 开始，只能依赖同一批里更靠前的子任务。父任务如果还是待办，会改成进行中。",
+    description: "把一条任务拆成最多 20 条子任务。depends_on_index 从 0 开始，只能依赖同一批里更靠前的子任务。父任务如果还是待办，会改成进行中。已完成的任务不能再拆。",
     inputSchema: {
       type: "object",
       properties: {
@@ -113,7 +113,7 @@ export const TOOLS: ToolSchema[] = [
   },
   {
     name: "update_task_status",
-    description: "更新任务状态、进度或备注。状态改为 done 且没有带 progress 时，进度会写成 100。不能删除任务。",
+    description: "更新任务状态、进度或备注。状态只能沿 todo → in_progress → blocked → done 前进。已完成的任务不能再修改，也不能删除。状态改为 done 且没有带 progress 时，进度会写成 100。",
     inputSchema: {
       type: "object",
       properties: {

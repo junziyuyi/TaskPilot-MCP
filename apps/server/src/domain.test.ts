@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest"
 import {
   applyStatusPatch,
   assertDateOrder,
+  assertDeletable,
+  assertStatusForward,
+  assertTaskMutable,
   createsCycle,
   createsParentCycle,
   isDay,
@@ -134,6 +137,33 @@ describe("applyStatusPatch", () => {
     expect(applyStatusPatch(current, { status: "done" }).progress).toBe(100)
     expect(applyStatusPatch(current, { status: "done", progress: 40 }).progress).toBe(40)
     expect(applyStatusPatch(current, { status: "in_progress" }).progress).toBe(20)
+  })
+
+  it("已完成不能改状态，更早的状态也不能倒退", () => {
+    const done = task({ id: "done", title: "完成", status: "done", progress: 100 })
+    expect(() => assertStatusForward("done", "todo")).toThrow("已完成的任务不能再改状态")
+    expect(() => applyStatusPatch(done, { status: "in_progress" })).toThrow("已完成的任务不能再改状态")
+    expect(applyStatusPatch(done, { note: "补充" })).toMatchObject({ status: "done", progress: 100, note: "补充" })
+
+    const doing = task({ id: "doing", title: "进行中", status: "in_progress", progress: 20 })
+    expect(() => applyStatusPatch(doing, { status: "todo" })).toThrow("任务状态不能倒退")
+    expect(applyStatusPatch(doing, { status: "blocked" }).status).toBe("blocked")
+    expect(applyStatusPatch(doing, { status: "done" }).progress).toBe(100)
+  })
+})
+
+describe("completed tasks stay put", () => {
+  it("已完成不能再改，也不能连同父任务一起删掉", () => {
+    expect(() => assertTaskMutable("done")).toThrow("已完成的任务不能再修改")
+    expect(() => assertTaskMutable("in_progress")).not.toThrow()
+    const tasks = [
+      task({ id: "parent", title: "父", status: "in_progress" }),
+      task({ id: "child", title: "子", parentId: "parent", status: "done" }),
+      task({ id: "open", title: "开", status: "todo" }),
+    ]
+    expect(() => assertDeletable(tasks, "child")).toThrow("已完成的任务不能删除")
+    expect(() => assertDeletable(tasks, "parent")).toThrow("子任务里有已完成的任务，不能删除")
+    expect(() => assertDeletable(tasks, "open")).not.toThrow()
   })
 })
 

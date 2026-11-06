@@ -1,6 +1,8 @@
 import {
   applyStatusPatch,
   assertDateOrder,
+  assertDeletable,
+  assertTaskMutable,
   createsCycle,
   createsParentCycle,
   matchesTask,
@@ -306,6 +308,7 @@ export async function createTask(
 export async function updateTask(db: D1Database, taskId: string, input: TaskWrite): Promise<void> {
   const existing = await findTask(db, taskId)
   if (!existing) throw new AppError("任务不存在", 404)
+  assertTaskMutable(existing.status)
   const tasks = await listTaskRecords(db, existing.projectId)
   const dependencies = await listDependencies(db, existing.projectId)
   const parentId = input.parentId === undefined ? existing.parentId : input.parentId
@@ -358,6 +361,7 @@ export async function deleteTask(db: D1Database, taskId: string): Promise<void> 
   const existing = await findTask(db, taskId)
   if (!existing) throw new AppError("任务不存在", 404)
   const tasks = await listTaskRecords(db, existing.projectId)
+  assertDeletable(tasks, taskId)
   const ids = subtreeIds(tasks, taskId)
   const marks = ids.map(() => "?").join(", ")
   const now = Date.now()
@@ -384,6 +388,7 @@ export async function expandTask(db: D1Database, taskId: string, subtasks: Expan
   if (subtasks.length === 0 || subtasks.length > 20) throw new AppError("一次拆成 1 到 20 条子任务")
   const parent = await findTask(db, taskId)
   if (!parent) throw new AppError("任务不存在", 404)
+  assertTaskMutable(parent.status)
   subtasks.forEach((subtask) => assertDateOrder(subtask.startDate, subtask.endDate))
   const now = Date.now()
   let sortOrder = await nextSortOrder(db, parent.projectId, parent.id)

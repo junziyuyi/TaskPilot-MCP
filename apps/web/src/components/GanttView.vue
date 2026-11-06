@@ -6,16 +6,29 @@
         <div class="corner">任务</div>
         <div v-for="task in tasks" :key="task.id" class="label">
           <div class="label-text" :style="{ paddingLeft: `${12 + task.depth * 16}px` }">
-            <button class="title" type="button" @click="emit('edit', task)">{{ task.title }}</button>
+            <button v-if="task.status !== 'done'" class="title" type="button" @click="emit('edit', task)">
+              {{ task.title }}
+            </button>
+            <span v-else class="title">{{ task.title }}</span>
             <p class="meta">
               <span>{{ task.assignee || '未指定' }}</span>
               <span>{{ task.progress }}%</span>
             </p>
           </div>
           <div class="label-actions">
-            <button class="text-btn" type="button" @click="emit('add-child', task)">子任务</button>
-            <select :aria-label="`修改${task.title}的状态`" :value="task.status" @change="onStatus(task, $event)">
-              <option v-for="status in STATUS_ORDER" :key="status" :value="status">{{ STATUS_LABEL[status] }}</option>
+            <button v-if="task.status !== 'done'" class="text-btn" type="button" @click="emit('add-child', task)">
+              子任务
+            </button>
+            <select
+              :aria-label="task.status === 'done' ? `${task.title}已完成，不能改状态` : `修改${task.title}的状态`"
+              :disabled="task.status === 'done'"
+              :title="task.status === 'done' ? '已完成，不能改状态' : undefined"
+              :value="task.status"
+              @change="onStatus(task, $event)"
+            >
+              <option v-for="status in forwardStatuses(task.status)" :key="status" :value="status">
+                {{ STATUS_LABEL[status] }}
+              </option>
             </select>
           </div>
         </div>
@@ -57,16 +70,18 @@
             <div
               v-if="bar(task)"
               class="bar"
-              :class="{ dragging: drag?.taskId === task.id }"
+              :class="{ dragging: drag?.taskId === task.id, frozen: task.status === 'done' }"
               :style="barStyle(task)"
-              :title="`拖动移动 ${task.title}，拖两端改开始或结束`"
+              :title="task.status === 'done' ? '已完成，不能改日期' : `拖动移动 ${task.title}，拖两端改开始或结束`"
               @pointerdown.stop="onBarDown($event, task, 'move')"
             >
               <i :style="fillStyle(task)" />
               <span class="handle left" title="改开始日期" @pointerdown.stop="onBarDown($event, task, 'start')" />
               <span class="handle right" title="改结束日期" @pointerdown.stop="onBarDown($event, task, 'end')" />
             </div>
-            <span v-else class="unscheduled">按住拖出时间</span>
+            <span v-else class="unscheduled" :class="{ frozen: task.status === 'done' }">
+              {{ task.status === 'done' ? '已完成' : '按住拖出时间' }}
+            </span>
             <span
               v-if="drag?.taskId === task.id && bar(task)"
               class="drag-label"
@@ -83,7 +98,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { STATUS_BAR, STATUS_LABEL, STATUS_ORDER } from '@/labels'
+import { forwardStatuses, STATUS_BAR, STATUS_LABEL } from '@/labels'
 import type { Task, TaskStatus } from '@/types'
 
 const props = defineProps<{ tasks: Task[] }>()
@@ -263,12 +278,12 @@ function fillStyle(task: Task) {
 }
 
 function onRowDown(event: PointerEvent, task: Task) {
-  if (event.button !== 0 || bar(task)) return
+  if (event.button !== 0 || task.status === 'done' || bar(task)) return
   onCreateDown(event, task)
 }
 
 function onBarDown(event: PointerEvent, task: Task, mode: 'move' | 'start' | 'end') {
-  if (event.button !== 0) return
+  if (event.button !== 0 || task.status === 'done') return
   event.preventDefault()
   const start = startOf(task)
   const end = endOf(task)
@@ -545,6 +560,10 @@ function diffDays(from: string, to: string): number {
   cursor: grabbing;
 }
 
+.bar.frozen {
+  cursor: default;
+}
+
 .bar i {
   display: block;
   height: 100%;
@@ -567,12 +586,20 @@ function diffDays(from: string, to: string): number {
   right: 0;
 }
 
+.bar.frozen .handle {
+  cursor: default;
+}
+
 .unscheduled {
   position: absolute;
   top: 18px;
   left: 8px;
   cursor: ew-resize;
   user-select: none;
+}
+
+.unscheduled.frozen {
+  cursor: default;
 }
 
 .drag-label {

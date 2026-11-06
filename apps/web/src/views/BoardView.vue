@@ -71,7 +71,9 @@
         />
         <KanbanView v-else class="h-full" :tasks="tasks" @edit="openEdit" @change-status="onStatus" />
       </section>
-      <aside class="max-h-56 overflow-auto border-t border-line lg:max-h-none lg:w-72 lg:border-t-0 lg:border-l">
+      <aside
+        class="max-h-56 min-h-0 overflow-auto border-t border-line lg:max-h-none lg:w-72 lg:border-t-0 lg:border-l"
+      >
         <h2 class="m-0 px-4 py-3 text-sm font-medium">可开工</h2>
         <p v-if="nextTasks.length === 0" class="m-0 px-4 pb-4 text-sm text-muted">没有可以开工的任务。</p>
         <button
@@ -287,11 +289,13 @@ function openCreate() {
 }
 
 function openEdit(task: Task) {
+  if (task.status === 'done') return
   dialogError.value = ''
   taskDialog.value = { mode: 'edit', task, parentId: task.parentId }
 }
 
 function openChild(task: Task) {
+  if (task.status === 'done') return
   dialogError.value = ''
   taskDialog.value = { mode: 'create', task: null, parentId: task.id }
 }
@@ -348,6 +352,7 @@ async function onSaveTask(draft: TaskDraft) {
   dialogError.value = ''
   try {
     const editing = taskDialog.value.task
+    if (editing?.status === 'done') return
     if (taskDialog.value.mode === 'create') {
       const created = await api<{ id: string }>(`/api/projects/${projectId.value}/tasks`, {
         method: 'POST',
@@ -377,7 +382,7 @@ async function onSaveTask(draft: TaskDraft) {
 async function onDeleteTask() {
   const task = taskDialog.value?.task
   const ownerId = projectId.value
-  if (!task || !ownerId) return
+  if (!task || !ownerId || task.status === 'done') return
   busy.value = true
   dialogError.value = ''
   try {
@@ -427,6 +432,7 @@ async function onStatus(task: Task, status: TaskStatus) {
     await Promise.all([loadBoard(), refreshCounts()])
   } catch (caught) {
     error.value = messageOf(caught)
+    await loadBoard()
   }
 }
 

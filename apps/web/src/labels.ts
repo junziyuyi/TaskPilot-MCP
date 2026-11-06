@@ -16,6 +16,11 @@ export const STATUS_BAR: Record<TaskStatus, string> = {
 
 export const STATUS_ORDER: TaskStatus[] = ['todo', 'in_progress', 'blocked', 'done']
 
+/** 当前状态，以及流程上更靠后的状态。已完成只剩自身。 */
+export function forwardStatuses(current: TaskStatus): TaskStatus[] {
+  return STATUS_ORDER.slice(STATUS_ORDER.indexOf(current))
+}
+
 export function formatWhen(value: number): string {
   return new Intl.DateTimeFormat('zh-CN', {
     month: '2-digit',
