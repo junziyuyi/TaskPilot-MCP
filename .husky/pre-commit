@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo "检查本次提交的暂存文件..."
+./node_modules/.bin/lint-staged

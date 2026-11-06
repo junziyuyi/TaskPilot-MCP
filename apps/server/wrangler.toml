@@ -1,0 +1,14 @@
+name = "taskpilot-mcp"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+
+# 部署前改成 Cloudflare Pages 的源，例如 https://taskpilot.pages.dev
+[vars]
+WEB_ORIGIN = "http://localhost:5173"
+
+# 本地可先用占位 id。`wrangler d1 create taskpilot` 之后，把 database_id 换成命令返回的 UUID。
+[[d1_databases]]
+binding = "DB"
+database_name = "taskpilot"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"

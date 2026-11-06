@@ -1,0 +1,119 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Sora', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --font-mono: 'Fragment Mono', ui-monospace, monospace;
+  --color-ink: #10141a;
+  --color-panel: #171d26;
+  --color-raise: #212a37;
+  --color-line: #313b4a;
+  --color-text: #e7eef7;
+  --color-muted: #a3b0c2;
+  --color-copper: #e0a15a;
+  --color-copper-ink: #24180c;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-ink);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-copper);
+  outline-offset: 2px;
+}
+
+.btn {
+  min-height: 36px;
+  padding: 0 12px;
+  background: var(--color-raise);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+}
+
+.btn-copper {
+  font-weight: 600;
+  color: var(--color-copper-ink);
+  background: var(--color-copper);
+  border-color: transparent;
+}
+
+.btn-danger {
+  font-weight: 600;
+  color: #2a0d0b;
+  background: #d85a4c;
+  border-color: transparent;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.field input,
+.field select,
+.field textarea {
+  min-height: 38px;
+  padding: 8px 10px;
+  color: var(--color-text);
+  background: var(--color-ink);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+}
+
+.field textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+dialog.modal {
+  width: min(560px, calc(100vw - 32px));
+  padding: 0;
+  margin: auto;
+  color: inherit;
+  background: transparent;
+  border: 0;
+}
+
+dialog.modal::backdrop {
+  background: rgb(8 10 14 / 72%);
+}
+
+.alert {
+  padding: 10px 20px;
+  margin: 0;
+  color: #ffd0cb;
+  background: #3a1d1d;
+}

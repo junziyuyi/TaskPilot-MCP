@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
+  exit 0
+fi
+
+echo "检查提交消息格式..."
+./node_modules/.bin/commitlint --edit "$1"

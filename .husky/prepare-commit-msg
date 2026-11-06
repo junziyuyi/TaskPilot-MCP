@@ -1,0 +1,11 @@
+#!/bin/sh
+
+case "$2" in
+  merge|squash) exit 0 ;;
+esac
+
+if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 || [ "$CZ_COMMIT" = "1" ]; then
+  exit 0
+fi
+
+echo "提示：推荐使用 pnpm cz 生成规范的提交消息。"
