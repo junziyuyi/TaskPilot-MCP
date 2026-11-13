@@ -4,12 +4,12 @@
 
 ## 技术栈
 
-| 部分 | 选择                                                 |
-| ---- | ---------------------------------------------------- |
-| 后端 | Cloudflare Workers、Hono、D1                         |
-| MCP  | `POST /mcp`，无状态 JSON-RPC                         |
-| 前端 | Vue 3、Vite、Tailwind CSS                            |
-| 部署 | Worker 用 `wrangler deploy`，看板用 Cloudflare Pages |
+| 部分 | 选择                                                            |
+| ---- | --------------------------------------------------------------- |
+| 后端 | Cloudflare Workers、Hono、D1                                    |
+| MCP  | `POST /mcp`，无状态 JSON-RPC                                    |
+| 前端 | Vue 3、Vite、Tailwind CSS                                       |
+| 部署 | Workers 免费档：静态看板 + API + MCP，域名 `task.junziyuyi.top` |
 
 不使用 NestJS、Prisma 或 PostgreSQL。甘特图是自绘的：拖动色条改日期，拖两端改开始或结束。顶栏「上一步」撤回刚刚在看板上做成的一步。
 
@@ -37,32 +37,25 @@ Vite 会把 `/api` 和 `/mcp` 代理到 Worker。
 
 ## 部署
 
+只用 Cloudflare 免费档：Workers、D1、自定义域名。不要开通 Workers Paid，也不要把 `junziyuyi.top` 升级成付费套餐，不要加 R2、Queues、Durable Objects。
+
+看板和接口都在 `https://task.junziyuyi.top`。`/api`、`/mcp` 进 Worker，其余路径是构建好的静态页面。域名需要在当前账号里，套餐保持 Free Website。
+
 ```bash
 cd apps/server
 npx wrangler d1 create taskpilot
 ```
 
-把返回的 `database_id` 写进 `apps/server/wrangler.toml`，并把 `WEB_ORIGIN` 改成 Pages 域名。
+把返回的 `database_id` 写进 `apps/server/wrangler.toml`。
 
 ```bash
+pnpm --filter @taskpilot/web build
 pnpm --filter @taskpilot/server db:migrate:remote
 cd apps/server
 npx wrangler secret put SITE_PASSWORD
 npx wrangler secret put MCP_TOKEN
 npx wrangler secret put SESSION_SECRET
 npx wrangler deploy
-```
-
-看板构建前设置 API 地址：
-
-```bash
-# apps/web/.env.production
-VITE_API_BASE=https://taskpilot-mcp.<account>.workers.dev
-```
-
-```bash
-pnpm --filter @taskpilot/web build
-npx wrangler pages deploy apps/web/dist --project-name taskpilot
 ```
 
 ## 接入 Cursor
@@ -73,7 +66,7 @@ npx wrangler pages deploy apps/web/dist --project-name taskpilot
 {
   "mcpServers": {
     "taskpilot": {
-      "url": "https://taskpilot-mcp.<account>.workers.dev/mcp",
+      "url": "https://task.junziyuyi.top/mcp",
       "headers": {
         "Authorization": "Bearer <MCP_TOKEN>"
       }

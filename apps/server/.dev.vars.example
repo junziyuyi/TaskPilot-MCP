@@ -1,3 +1,4 @@
 SITE_PASSWORD=taskpilot
 MCP_TOKEN=dev-mcp-token
 SESSION_SECRET=dev-session-secret-change-me
+WEB_ORIGIN=http://localhost:5173
